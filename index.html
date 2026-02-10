@@ -3,197 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PCR Simulation</title>
+    <title>PCR: Linear vs Exponential Growth</title>
     <style>
         :root {
-            --blue: #2980b9; --purple: #8e44ad; --green: #27ae60;
-            --brown: #795548; --bg: #ffffff; --text: #333; --light: #f8f9fa;
+            --orange: #ff851b; --pink: #f012be; --blue: #0074d9;
+            --black: #111111; --gray: #f4f4f4; --dark: #333;
         }
-        * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: default; }
         body { 
-            margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; 
-            background: var(--bg); color: var(--text); overflow: hidden;
-            display: flex; flex-direction: column; height: 100vh;
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #ffffff; color: var(--dark); overflow: hidden; height: 100vh; display: flex; flex-direction: column;
         }
 
-        /* --- UI Header --- */
-        #header { padding: 15px; border-bottom: 1px solid #eee; text-align: center; background: white; z-index: 10; }
-        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; color: var(--text); }
+        header { padding: 15px; border-bottom: 1px solid #eee; text-align: center; background: white; z-index: 10; }
+        h1 { margin: 0; font-size: 1rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
 
-        /* --- Layout --- */
-        #main { flex: 1; display: flex; position: relative; overflow: hidden; }
-        #stage { flex: 3; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; border-right: 1px solid #eee; }
-        
-        /* --- Right Margin Product Gallery --- */
-        #gallery { flex: 1.2; background: var(--light); display: flex; flex-direction: column; padding: 15px; overflow-y: auto; }
-        .gallery-section { margin-bottom: 20px; }
-        .gallery-title { font-size: 0.7rem; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #ddd; }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; }
-        
-        /* Visual DNA Icons */
-        .dna-icon { height: 6px; border-radius: 3px; position: relative; }
-        .icon-long { background: linear-gradient(90deg, var(--blue) 30%, var(--green) 70%); }
-        .icon-target { background: linear-gradient(90deg, var(--purple) 20%, var(--green) 60%, var(--purple) 20%); }
+        #main { flex: 1; display: flex; position: relative; }
 
-        /* --- Animation Stage Elements --- */
-        .dna-workspace { position: relative; width: 85%; height: 200px; }
-        .strand { position: absolute; width: 100%; height: 10px; border-radius: 5px; transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-        .template-original { background: var(--blue); }
-        .new-synthesis { background: var(--green); height: 10px; width: 0; position: absolute; }
-        .primer { position: absolute; width: 40px; height: 14px; background: var(--purple); border-radius: 3px; opacity: 0; z-index: 5; }
-        .label { position: absolute; font-size: 0.7rem; font-weight: bold; color: #aaa; }
+        /* --- Animation Stage --- */
+        #stage { flex: 2; position: relative; border-right: 1px solid #eee; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .cycle-step-indicator { position: absolute; top: 10px; font-size: 0.7rem; font-weight: bold; color: var(--pink); text-transform: uppercase; }
+
+        .dna-workspace { position: relative; width: 80%; height: 160px; }
+        .strand { position: absolute; width: 100%; height: 8px; border-radius: 4px; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .p-strand { background: var(--orange); }
+        .l-strand { background: var(--black); width: 0; right: 0; }
+        .primer { position: absolute; width: 25px; height: 12px; border-radius: 3px; opacity: 0; transition: opacity 0.3s; z-index: 5; }
+        .f-primer { background: var(--pink); top: 35%; left: 0; }
+        .b-primer { background: var(--blue); bottom: 35%; right: 0; }
+
+        /* --- Yield Margin --- */
+        #margin { flex: 1.2; background: #fafafa; display: flex; flex-direction: column; padding: 15px; overflow-y: hidden; }
+        .yield-title { font-size: 0.65rem; font-weight: bold; color: #999; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #ddd; }
+        .product-bin { margin-bottom: 15px; flex: 1; overflow: hidden; }
+        .icon-grid { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+        
+        .icon { height: 6px; width: 25px; border-radius: 3px; position: relative; }
+        .icon-p { background: var(--orange); width: 100%; }
+        .icon-l { background: linear-gradient(90deg, var(--pink) 20%, var(--black) 80%); }
+        .icon-s { background: linear-gradient(90deg, var(--pink) 20%, var(--black) 60%, var(--blue) 20%); }
+
+        .counter { font-size: 1.2rem; font-weight: 800; color: var(--dark); margin-left: 5px; }
 
         /* --- Controls --- */
-        #controls { padding: 20px; border-top: 1px solid #eee; background: white; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        #slider-container { width: 80%; display: flex; align-items: center; gap: 15px; }
-        input[type=range] { flex: 1; cursor: pointer; accent-color: var(--purple); }
-        .btn-group { display: flex; gap: 10px; }
-        button { padding: 10px 25px; border-radius: 20px; border: none; background: var(--text); color: white; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #ccc; }
-
-        /* Phase Indicators */
-        #phase-display { font-weight: bold; color: var(--purple); font-size: 0.9rem; height: 1.2rem; }
+        #controls { padding: 20px; border-top: 1px solid #eee; display: flex; justify-content: center; align-items: center; gap: 20px; background: white; }
+        button {
+            padding: 12px 30px; font-size: 0.8rem; font-weight: bold; border: none; border-radius: 50px;
+            background: var(--dark); color: white; cursor: pointer; transition: 0.2s;
+        }
+        button:disabled { opacity: 0.2; cursor: not-allowed; }
+        #cycle-info { text-align: center; min-width: 80px; }
     </style>
 </head>
 <body>
 
-    <div id="header"><h1>POLYMERASE CHAIN REACTION</h1></div>
+    <header><h1>Polymerase Chain Reaction</h1></header>
 
     <div id="main">
         <div id="stage">
-            <div id="phase-display">Set slider to start</div>
+            <div id="step-label" class="cycle-step-indicator">Press Start to Begin</div>
             <div class="dna-workspace">
-                <!-- 5' to 3' template (Top) -->
-                <div id="top-t" class="strand template-original" style="top: 30%;"></div>
-                <div class="label" style="top: 25%; left: -30px;">5'</div>
-                <div class="label" style="top: 25%; right: -30px;">3'</div>
+                <!-- Visual Workspace -->
+                <div id="top-p" class="strand p-strand" style="top: 30%;"></div>
+                <div id="bot-p" class="strand p-strand" style="bottom: 30%;"></div>
                 
-                <!-- 3' to 5' template (Bottom) -->
-                <div id="bot-t" class="strand template-original" style="bottom: 30%;"></div>
-                <div class="label" style="bottom: 25%; left: -30px;">3'</div>
-                <div class="label" style="bottom: 25%; right: -30px;">5'</div>
-
-                <!-- Primers & Synthesis -->
-                <div id="p-top" class="primer" style="top: 38%; right: 0;"></div> <!-- Binds to 3' of top -->
-                <div id="p-bot" class="primer" style="bottom: 38%; left: 0;"></div> <!-- Binds to 3' of bot -->
+                <div id="p-forward" class="primer f-primer"></div>
+                <div id="p-backward" class="primer b-primer"></div>
                 
-                <div id="syn-top" class="new-synthesis" style="top: 30%; right: 40px;"></div>
-                <div id="syn-bot" class="new-synthesis" style="bottom: 30%; left: 40px;"></div>
+                <div id="grow-top" class="strand l-strand" style="top: 30%;"></div>
+                <div id="grow-bot" class="strand l-strand" style="bottom: 30%; left: 0; right: auto;"></div>
             </div>
         </div>
 
-        <div id="gallery">
-            <div class="gallery-section">
-                <div class="gallery-title">Cycle: <span id="cycle-count">0</span></div>
+        <div id="margin">
+            <div class="product-bin">
+                <div class="yield-title">Parental Templates (Constant)</div>
+                <div class="icon-grid"><div class="icon icon-p"></div><div class="icon icon-p"></div></div>
             </div>
-            <div class="gallery-section">
-                <div class="gallery-title">Long Fragments (Linear)</div>
-                <div id="long-fragments" class="product-grid"></div>
+            <div class="product-bin">
+                <div class="yield-title">Long Strands (Linear Growth: 2n)</div>
+                <div id="long-grid" class="icon-grid"></div>
             </div>
-            <div class="gallery-section">
-                <div class="gallery-title">Target Fragments (Exponential)</div>
-                <div id="target-fragments" class="product-grid"></div>
+            <div class="product-bin" style="flex: 2;">
+                <div class="yield-title" id="target-title">Target Strands (Exponential Growth)</div>
+                <div id="short-grid" class="icon-grid"></div>
             </div>
         </div>
     </div>
 
     <div id="controls">
-        <div id="slider-container">
-            <span>Denature</span>
-            <input type="range" id="phase-slider" min="0" max="100" value="0">
-            <span>Extend</span>
+        <div id="cycle-info">
+            <span style="font-size: 0.6rem; color: #999; display: block;">CYCLE</span>
+            <span id="cycle-num" style="font-weight: 800; font-size: 1.2rem;">0</span>
         </div>
-        <div class="btn-group">
-            <button id="next-btn" onclick="completeCycle()" disabled>FINISH CYCLE</button>
-            <button style="background:#eee; color:#666" onclick="location.reload()">RESET</button>
-        </div>
+        <button id="step-btn" onclick="handleStep()">START CYCLE 1</button>
+        <button style="background: #eee; color: #666;" onclick="location.reload()">RESET</button>
     </div>
 
     <script>
-        /* --- SECURITY --- */
+        /* --- SECURITY LAYER --- */
         if (!window.location.hostname.includes('wynscape.github.io') && !window.location.hostname.includes('localhost')) {
-            document.body.innerHTML = "";
+            document.body.innerHTML = "<div style='padding:50px; text-align:center;'>Unauthorized Domain.</div>";
         }
         document.addEventListener('contextmenu', e => e.preventDefault());
-        document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73) || (e.ctrlKey && e.keyCode == 85)) return false; };
+        document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73)) return false; };
 
-        /* --- LOGIC --- */
-        const slider = document.getElementById('phase-slider');
-        const phaseTxt = document.getElementById('phase-display');
-        const nextBtn = document.getElementById('next-btn');
+        /* --- PCR LOGIC --- */
         let cycle = 0;
+        let step = 0; // 0: Melt, 1: Anneal, 2: Extend
+        let isRunning = false;
 
-        slider.addEventListener('input', (e) => {
-            const val = e.target.value;
-            
-            // 1. Denaturation (0-30)
-            if (val < 33) {
-                phaseTxt.innerText = "1. Denaturation (95°C) - Strands Separate";
-                document.getElementById('top-t').style.top = (30 - (val/2)) + "%";
-                document.getElementById('bot-t').style.bottom = (30 - (val/2)) + "%";
-                resetSynthesis();
+        async function handleStep() {
+            if (isRunning || cycle >= 6) return;
+            isRunning = true;
+            const btn = document.getElementById('step-btn');
+            const lbl = document.getElementById('step-label');
+            btn.disabled = true;
+
+            if (step === 0) { // MELT
+                cycle++;
+                lbl.innerText = `Cycle ${cycle}: Denaturation (95°C)`;
+                lbl.style.color = "#ff4136";
+                document.getElementById('top-p').style.top = "10%";
+                document.getElementById('bot-p').style.bottom = "10%";
+                await wait(800);
+                step = 1;
+                btn.innerText = "ANNEAL";
             } 
-            // 2. Annealing (33-66)
-            else if (val >= 33 && val < 66) {
-                phaseTxt.innerText = "2. Annealing (55°C) - Primers Bind to 3' Ends";
-                document.getElementById('p-top').style.opacity = "1";
-                document.getElementById('p-bot').style.opacity = "1";
-                document.getElementById('syn-top').style.width = "0%";
-                document.getElementById('syn-bot').style.width = "0%";
+            else if (step === 1) { // ANNEAL
+                lbl.innerText = `Cycle ${cycle}: Annealing (55°C)`;
+                lbl.style.color = "var(--pink)";
+                document.getElementById('p-forward').style.opacity = "1";
+                document.getElementById('p-backward').style.opacity = "1";
+                await wait(800);
+                step = 2;
+                btn.innerText = "EXTEND";
             }
-            // 3. Extension (66-100)
-            else {
-                phaseTxt.innerText = "3. Extension (72°C) - Synthesis Starts";
-                const extWidth = ((val - 66) / 34) * 85;
-                document.getElementById('syn-top').style.width = extWidth + "%";
-                document.getElementById('syn-bot').style.width = extWidth + "%";
-                if(val == 100) nextBtn.disabled = false;
+            else if (step === 2) { // EXTEND
+                lbl.innerText = `Cycle ${cycle}: Extension (72°C)`;
+                lbl.style.color = "var(--green)";
+                const gT = document.getElementById('grow-top');
+                const gB = document.getElementById('grow-bot');
+                gT.style.width = "100%";
+                gB.style.width = "100%";
+                await wait(1000);
+                
+                updateYield();
+                
+                // Reset stage for next cycle
+                document.getElementById('top-p').style.top = "30%";
+                document.getElementById('bot-p').style.bottom = "30%";
+                document.getElementById('p-forward').style.opacity = "0";
+                document.getElementById('p-backward').style.opacity = "0";
+                gT.style.width = "0";
+                gB.style.width = "0";
+                
+                step = 0;
+                document.getElementById('cycle-num').innerText = cycle;
+                btn.innerText = cycle < 6 ? `START CYCLE ${cycle + 1}` : "MAX REACHED";
             }
-        });
 
-        function completeCycle() {
-            if (cycle >= 5) return;
-            cycle++;
-            document.getElementById('cycle-count').innerText = cycle;
-            
-            // Math Logic: Linear vs Exponential
-            const longCount = cycle * 2;
-            const total = Math.pow(2, cycle);
-            const targetCount = cycle < 3 ? 0 : total - longCount;
-
-            // Update Gallery
-            updateGallery(longCount, targetCount);
-
-            // Reset for next cycle
-            slider.value = 0;
-            nextBtn.disabled = true;
-            resetVisuals();
-            phaseTxt.innerText = "Cycle " + cycle + " Complete. Start next cycle?";
+            btn.disabled = false;
+            isRunning = false;
         }
 
-        function updateGallery(l, t) {
-            const lGrid = document.getElementById('long-fragments');
-            const tGrid = document.getElementById('target-fragments');
-            
+        function updateYield() {
+            // Math: Templates=2, Long=2n, Target=2^(n+1)-2n-2
+            const longCount = 2 * cycle;
+            const totalStrands = 2 * Math.pow(2, cycle);
+            const targetCount = totalStrands - longCount - 2;
+
+            const lGrid = document.getElementById('long-grid');
+            const sGrid = document.getElementById('short-grid');
+
             lGrid.innerHTML = '';
-            for(let i=0; i<l; i++) lGrid.innerHTML += '<div class="dna-icon icon-long"></div>';
-            
-            tGrid.innerHTML = '';
-            for(let i=0; i<t; i++) tGrid.innerHTML += '<div class="dna-icon icon-target"></div>';
+            for(let i=0; i < Math.min(longCount, 30); i++) {
+                lGrid.innerHTML += '<div class="icon icon-l"></div>';
+            }
+            if(longCount > 0) lGrid.innerHTML += `<span class="counter">${longCount}</span>`;
+
+            sGrid.innerHTML = '';
+            let displayCount = Math.min(targetCount, 60);
+            for(let i=0; i < displayCount; i++) {
+                sGrid.innerHTML += '<div class="icon icon-s"></div>';
+            }
+            if(targetCount > 0) {
+                sGrid.innerHTML += `<span class="counter">${targetCount}</span>`;
+                document.getElementById('target-title').style.color = "var(--pink)";
+            }
         }
 
-        function resetSynthesis() {
-            document.getElementById('p-top').style.opacity = "0";
-            document.getElementById('p-bot').style.opacity = "0";
-            document.getElementById('syn-top').style.width = "0";
-            document.getElementById('syn-bot').style.width = "0";
-        }
-
-        function resetVisuals() {
-            document.getElementById('top-t').style.top = "30%";
-            document.getElementById('bot-t').style.bottom = "30%";
-            resetSynthesis();
-        }
+        function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
     </script>
 </body>
 </html>
