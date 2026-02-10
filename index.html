@@ -3,194 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PCR: Linear vs Exponential Growth</title>
+    <title>PCR: Molecular & Mathematical Growth</title>
     <style>
         :root {
-            --orange: #ff851b; --pink: #f012be; --blue: #0074d9;
-            --black: #111111; --gray: #f4f4f4; --dark: #333;
+            --parent: #ff851b; --primer-f: #f012be; --primer-r: #0074d9;
+            --new: #333333; --bg: #ffffff; --border: #eeeeee;
         }
-        * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: default; }
+        * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
         body { 
-            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: #ffffff; color: var(--dark); overflow: hidden; height: 100vh; display: flex; flex-direction: column;
+            margin: 0; font-family: -apple-system, sans-serif; 
+            background: var(--bg); color: #333; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        header { padding: 15px; border-bottom: 1px solid #eee; text-align: center; background: white; z-index: 10; }
-        h1 { margin: 0; font-size: 1rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
+        /* --- Header --- */
+        header { padding: 10px; border-bottom: 1px solid var(--border); text-align: center; }
+        h1 { margin: 0; font-size: 1rem; letter-spacing: 1px; font-weight: 800; }
 
-        #main { flex: 1; display: flex; position: relative; }
+        /* --- Workspace (Top) --- */
+        #workspace { height: 35%; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #fff; }
+        .dna-box { position: relative; width: 80%; height: 120px; }
+        .strand { position: absolute; width: 100%; height: 6px; border-radius: 3px; transition: all 0.6s ease; }
+        .s-parent { background: var(--parent); }
+        .s-new { background: var(--new); width: 0; }
+        .primer { position: absolute; width: 25px; height: 10px; border-radius: 2px; opacity: 0; z-index: 5; transition: opacity 0.3s; }
+        .p-f { background: var(--primer-f); top: 35%; right: 0; } /* Binds 3' of top strand */
+        .p-r { background: var(--primer-r); bottom: 35%; left: 0; } /* Binds 3' of bottom strand */
+        .label { position: absolute; font-size: 0.6rem; font-weight: bold; color: #ccc; }
 
-        /* --- Animation Stage --- */
-        #stage { flex: 2; position: relative; border-right: 1px solid #eee; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .cycle-step-indicator { position: absolute; top: 10px; font-size: 0.7rem; font-weight: bold; color: var(--pink); text-transform: uppercase; }
-
-        .dna-workspace { position: relative; width: 80%; height: 160px; }
-        .strand { position: absolute; width: 100%; height: 8px; border-radius: 4px; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-        .p-strand { background: var(--orange); }
-        .l-strand { background: var(--black); width: 0; right: 0; }
-        .primer { position: absolute; width: 25px; height: 12px; border-radius: 3px; opacity: 0; transition: opacity 0.3s; z-index: 5; }
-        .f-primer { background: var(--pink); top: 35%; left: 0; }
-        .b-primer { background: var(--blue); bottom: 35%; right: 0; }
-
-        /* --- Yield Margin --- */
-        #margin { flex: 1.2; background: #fafafa; display: flex; flex-direction: column; padding: 15px; overflow-y: hidden; }
-        .yield-title { font-size: 0.65rem; font-weight: bold; color: #999; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #ddd; }
-        .product-bin { margin-bottom: 15px; flex: 1; overflow: hidden; }
-        .icon-grid { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+        /* --- Results Panel (Bottom) --- */
+        #results-panel { flex: 1; background: #fafafa; border-top: 2px solid var(--border); display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
+        .cycle-row { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 5px; }
+        .row-header { display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: bold; color: #888; text-transform: uppercase; }
+        .strand-tray { display: flex; flex-wrap: wrap; gap: 3px; }
         
-        .icon { height: 6px; width: 25px; border-radius: 3px; position: relative; }
-        .icon-p { background: var(--orange); width: 100%; }
-        .icon-l { background: linear-gradient(90deg, var(--pink) 20%, var(--black) 80%); }
-        .icon-s { background: linear-gradient(90deg, var(--pink) 20%, var(--black) 60%, var(--blue) 20%); }
-
-        .counter { font-size: 1.2rem; font-weight: 800; color: var(--dark); margin-left: 5px; }
+        /* Icons */
+        .icon { height: 5px; width: 18px; border-radius: 2px; }
+        .i-long { background: linear-gradient(90deg, var(--primer-f) 25%, var(--new) 75%); }
+        .i-short { background: linear-gradient(90deg, var(--primer-f) 25%, var(--new) 50%, var(--primer-r) 25%); }
+        .stat-val { color: #333; font-weight: 800; margin-left: 4px; }
 
         /* --- Controls --- */
-        #controls { padding: 20px; border-top: 1px solid #eee; display: flex; justify-content: center; align-items: center; gap: 20px; background: white; }
-        button {
-            padding: 12px 30px; font-size: 0.8rem; font-weight: bold; border: none; border-radius: 50px;
-            background: var(--dark); color: white; cursor: pointer; transition: 0.2s;
-        }
-        button:disabled { opacity: 0.2; cursor: not-allowed; }
-        #cycle-info { text-align: center; min-width: 80px; }
+        #controls { padding: 15px; border-top: 1px solid var(--border); background: white; display: flex; justify-content: center; align-items: center; gap: 15px; }
+        button { padding: 10px 20px; border-radius: 20px; border: none; background: #222; color: white; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+        button:disabled { opacity: 0.2; }
+        #status-txt { font-size: 0.75rem; font-weight: bold; color: var(--primer-f); width: 140px; text-align: center; }
+
+        @media (max-width: 600px) { h1 { font-size: 0.8rem; } #status-txt { width: 100px; font-size: 0.6rem; } }
     </style>
 </head>
 <body>
 
-    <header><h1>Polymerase Chain Reaction</h1></header>
+    <header><h1>PCR: CYCLE-BY-CYCLE GROWTH</h1></header>
 
-    <div id="main">
-        <div id="stage">
-            <div id="step-label" class="cycle-step-indicator">Press Start to Begin</div>
-            <div class="dna-workspace">
-                <!-- Visual Workspace -->
-                <div id="top-p" class="strand p-strand" style="top: 30%;"></div>
-                <div id="bot-p" class="strand p-strand" style="bottom: 30%;"></div>
-                
-                <div id="p-forward" class="primer f-primer"></div>
-                <div id="p-backward" class="primer b-primer"></div>
-                
-                <div id="grow-top" class="strand l-strand" style="top: 30%;"></div>
-                <div id="grow-bot" class="strand l-strand" style="bottom: 30%; left: 0; right: auto;"></div>
-            </div>
+    <div id="workspace">
+        <div id="status-txt">Ready: Press Melt</div>
+        <div class="dna-box">
+            <!-- 5' to 3' (Top) -->
+            <div id="top-t" class="strand s-parent" style="top: 30%;"></div>
+            <div class="label" style="top: 22%; left: -20px;">5'</div>
+            <div class="label" style="top: 22%; right: -20px;">3'</div>
+            
+            <!-- 3' to 5' (Bot) -->
+            <div id="bot-t" class="strand s-parent" style="bottom: 30%;"></div>
+            <div class="label" style="bottom: 22%; left: -20px;">3'</div>
+            <div class="label" style="bottom: 22%; right: -20px;">5'</div>
+
+            <!-- Primers & Synthesis -->
+            <div id="p-f" class="primer p-f"></div>
+            <div id="p-r" class="primer p-r"></div>
+            
+            <!-- Growing Strands (Physically attached to primers) -->
+            <div id="syn-f" class="strand s-new" style="top: 30%; right: 25px;"></div>
+            <div id="syn-r" class="strand s-new" style="bottom: 30%; left: 25px;"></div>
         </div>
+    </div>
 
-        <div id="margin">
-            <div class="product-bin">
-                <div class="yield-title">Parental Templates (Constant)</div>
-                <div class="icon-grid"><div class="icon icon-p"></div><div class="icon icon-p"></div></div>
-            </div>
-            <div class="product-bin">
-                <div class="yield-title">Long Strands (Linear Growth: 2n)</div>
-                <div id="long-grid" class="icon-grid"></div>
-            </div>
-            <div class="product-bin" style="flex: 2;">
-                <div class="yield-title" id="target-title">Target Strands (Exponential Growth)</div>
-                <div id="short-grid" class="icon-grid"></div>
+    <div id="results-panel" id="scroll-target">
+        <!-- Results append here -->
+        <div class="cycle-row">
+            <div class="row-header"><span>Cycle 0: Parental Templates</span></div>
+            <div class="strand-tray">
+                <div class="icon" style="background:var(--parent)"></div>
+                <div class="icon" style="background:var(--parent)"></div>
             </div>
         </div>
     </div>
 
     <div id="controls">
-        <div id="cycle-info">
-            <span style="font-size: 0.6rem; color: #999; display: block;">CYCLE</span>
-            <span id="cycle-num" style="font-weight: 800; font-size: 1.2rem;">0</span>
-        </div>
-        <button id="step-btn" onclick="handleStep()">START CYCLE 1</button>
-        <button style="background: #eee; color: #666;" onclick="location.reload()">RESET</button>
+        <button id="step-btn" onclick="nextStep()">MELT DNA</button>
+        <button style="background:#eee; color:#666" onclick="location.reload()">RESET</button>
     </div>
 
     <script>
-        /* --- SECURITY LAYER --- */
+        /* --- SECURITY --- */
         if (!window.location.hostname.includes('wynscape.github.io') && !window.location.hostname.includes('localhost')) {
-            document.body.innerHTML = "<div style='padding:50px; text-align:center;'>Unauthorized Domain.</div>";
+            document.body.innerHTML = "";
         }
         document.addEventListener('contextmenu', e => e.preventDefault());
-        document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73)) return false; };
 
-        /* --- PCR LOGIC --- */
+        /* --- LOGIC --- */
         let cycle = 0;
         let step = 0; // 0: Melt, 1: Anneal, 2: Extend
         let isRunning = false;
 
-        async function handleStep() {
-            if (isRunning || cycle >= 6) return;
+        async function nextStep() {
+            if (isRunning || cycle >= 5) return;
             isRunning = true;
             const btn = document.getElementById('step-btn');
-            const lbl = document.getElementById('step-label');
+            const status = document.getElementById('status-txt');
             btn.disabled = true;
 
-            if (step === 0) { // MELT
+            if (step === 0) {
                 cycle++;
-                lbl.innerText = `Cycle ${cycle}: Denaturation (95°C)`;
-                lbl.style.color = "#ff4136";
-                document.getElementById('top-p').style.top = "10%";
-                document.getElementById('bot-p').style.bottom = "10%";
-                await wait(800);
+                status.innerText = `C${cycle}: Melting (95°C)`;
+                document.getElementById('top-t').style.top = "10%";
+                document.getElementById('bot-t').style.bottom = "10%";
+                await wait(600);
                 step = 1;
-                btn.innerText = "ANNEAL";
+                btn.innerText = "ANNEAL PRIMERS";
             } 
-            else if (step === 1) { // ANNEAL
-                lbl.innerText = `Cycle ${cycle}: Annealing (55°C)`;
-                lbl.style.color = "var(--pink)";
-                document.getElementById('p-forward').style.opacity = "1";
-                document.getElementById('p-backward').style.opacity = "1";
-                await wait(800);
+            else if (step === 1) {
+                status.innerText = `C${cycle}: Annealing (55°C)`;
+                document.getElementById('p-f').style.opacity = "1";
+                document.getElementById('p-r').style.opacity = "1";
+                await wait(600);
                 step = 2;
-                btn.innerText = "EXTEND";
+                btn.innerText = "EXTEND STRANDS";
             }
-            else if (step === 2) { // EXTEND
-                lbl.innerText = `Cycle ${cycle}: Extension (72°C)`;
-                lbl.style.color = "var(--green)";
-                const gT = document.getElementById('grow-top');
-                const gB = document.getElementById('grow-bot');
-                gT.style.width = "100%";
-                gB.style.width = "100%";
+            else if (step === 2) {
+                status.innerText = `C${cycle}: Extension (72°C)`;
+                const f = document.getElementById('syn-f');
+                const r = document.getElementById('syn-r');
+                f.style.width = "calc(100% - 25px)";
+                r.style.width = "calc(100% - 25px)";
                 await wait(1000);
                 
-                updateYield();
+                generateCycleResults();
                 
-                // Reset stage for next cycle
-                document.getElementById('top-p').style.top = "30%";
-                document.getElementById('bot-p').style.bottom = "30%";
-                document.getElementById('p-forward').style.opacity = "0";
-                document.getElementById('p-backward').style.opacity = "0";
-                gT.style.width = "0";
-                gB.style.width = "0";
+                // Reset Stage
+                document.getElementById('top-t').style.top = "30%";
+                document.getElementById('bot-t').style.bottom = "30%";
+                document.getElementById('p-f').style.opacity = "0";
+                document.getElementById('p-r').style.opacity = "0";
+                f.style.width = "0";
+                r.style.width = "0";
                 
                 step = 0;
-                document.getElementById('cycle-num').innerText = cycle;
-                btn.innerText = cycle < 6 ? `START CYCLE ${cycle + 1}` : "MAX REACHED";
+                btn.innerText = cycle < 5 ? "MELT DNA (NEXT)" : "MAX CYCLES";
+                status.innerText = `Cycle ${cycle} Complete`;
             }
 
-            btn.disabled = false;
+            if (cycle < 5 || step !== 0) btn.disabled = false;
             isRunning = false;
         }
 
-        function updateYield() {
-            // Math: Templates=2, Long=2n, Target=2^(n+1)-2n-2
+        function generateCycleResults() {
+            const panel = document.getElementById('results-panel');
+            const row = document.createElement('div');
+            row.className = 'cycle-row';
+
+            // Math Logic
+            // Total strands = 2 * 2^cycle
+            // Linear (Long) = 2 * cycle
+            // Exponential (Short) = Total - Long - 2
             const longCount = 2 * cycle;
-            const totalStrands = 2 * Math.pow(2, cycle);
-            const targetCount = totalStrands - longCount - 2;
+            const total = 2 * Math.pow(2, cycle);
+            const shortCount = total - longCount - 2;
 
-            const lGrid = document.getElementById('long-grid');
-            const sGrid = document.getElementById('short-grid');
+            row.innerHTML = `
+                <div class="row-header">
+                    <span>Cycle ${cycle} Products</span>
+                    <span>Long: <span class="stat-val">${longCount}</span> | Target: <span class="stat-val">${shortCount > 0 ? shortCount : 0}</span></span>
+                </div>
+                <div class="strand-tray" id="tray-${cycle}"></div>
+            `;
+            
+            panel.appendChild(row);
+            const tray = document.getElementById(`tray-${cycle}`);
 
-            lGrid.innerHTML = '';
-            for(let i=0; i < Math.min(longCount, 30); i++) {
-                lGrid.innerHTML += '<div class="icon icon-l"></div>';
-            }
-            if(longCount > 0) lGrid.innerHTML += `<span class="counter">${longCount}</span>`;
-
-            sGrid.innerHTML = '';
-            let displayCount = Math.min(targetCount, 60);
-            for(let i=0; i < displayCount; i++) {
-                sGrid.innerHTML += '<div class="icon icon-s"></div>';
-            }
-            if(targetCount > 0) {
-                sGrid.innerHTML += `<span class="counter">${targetCount}</span>`;
-                document.getElementById('target-title').style.color = "var(--pink)";
-            }
+            // Add Long Icons
+            for(let i=0; i<longCount; i++) tray.innerHTML += '<div class="icon i-long"></div>';
+            // Add Short Icons
+            for(let i=0; i<Math.max(0, shortCount); i++) tray.innerHTML += '<div class="icon i-short"></div>';
+            
+            panel.scrollTop = panel.scrollHeight;
         }
 
         function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
