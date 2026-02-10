@@ -3,224 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PCR: Exponential Engine | Wynscape</title>
+    <title>PCR Simulation</title>
     <style>
         :root {
-            --blue: #3498db; --purple: #9b59b6; --green: #2ecc71;
-            --brown: #795548; --gray: #ecf0f1; --dark: #2c3e50;
+            --blue: #2980b9; --purple: #8e44ad; --green: #27ae60;
+            --brown: #795548; --bg: #ffffff; --text: #333; --light: #f8f9fa;
         }
         * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
         body { 
-            margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background: #ffffff; color: var(--dark); overflow: hidden;
+            margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; 
+            background: var(--bg); color: var(--text); overflow: hidden;
             display: flex; flex-direction: column; height: 100vh;
         }
 
-        /* --- Layout --- */
-        #header { padding: 10px 20px; border-bottom: 1px solid var(--gray); display: flex; justify-content: space-between; align-items: center; }
-        #main-container { flex: 1; display: flex; position: relative; overflow: hidden; }
-        
-        /* --- Stage --- */
-        #stage { flex: 3; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        
-        /* --- Yield Margin --- */
-        #yield-margin { 
-            flex: 1; border-left: 1px solid var(--gray); background: #fafafa; 
-            display: flex; flex-direction: column; padding: 10px; font-size: 0.8rem;
-        }
-        .yield-group { margin-bottom: 20px; }
-        .yield-label { font-weight: bold; margin-bottom: 5px; color: #777; font-size: 0.7rem; text-transform: uppercase; }
-        .symbol-container { display: flex; flex-wrap: wrap; gap: 4px; }
-        .symbol { width: 12px; height: 12px; border-radius: 2px; }
-        .sym-linear { background: linear-gradient(to right, var(--blue) 50%, var(--green) 50%); }
-        .sym-expo { background: linear-gradient(to right, var(--purple) 50%, var(--green) 50%); }
-        .multiplier { font-weight: bold; color: var(--dark); margin-left: 5px; }
+        /* --- UI Header --- */
+        #header { padding: 15px; border-bottom: 1px solid #eee; text-align: center; background: white; z-index: 10; }
+        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; color: var(--text); }
 
-        /* --- DNA Animation Elements --- */
-        .strand-container { position: relative; width: 80%; height: 100px; transition: all 0.8s ease; }
-        .strand { 
-            position: absolute; width: 100%; height: 8px; border-radius: 4px; 
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        .template { background: var(--blue); }
-        .new-dna { background: var(--green); height: 0; }
-        .primer { 
-            position: absolute; width: 30px; height: 12px; background: var(--purple); 
-            border-radius: 2px; opacity: 0; transition: opacity 0.5s; 
-        }
-        .polymerase { 
-            position: absolute; width: 20px; height: 20px; background: var(--brown); 
-            border-radius: 50%; opacity: 0; transform: translate(-50%, -50%); 
-        }
+        /* --- Layout --- */
+        #main { flex: 1; display: flex; position: relative; overflow: hidden; }
+        #stage { flex: 3; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; border-right: 1px solid #eee; }
+        
+        /* --- Right Margin Product Gallery --- */
+        #gallery { flex: 1.2; background: var(--light); display: flex; flex-direction: column; padding: 15px; overflow-y: auto; }
+        .gallery-section { margin-bottom: 20px; }
+        .gallery-title { font-size: 0.7rem; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #ddd; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; }
+        
+        /* Visual DNA Icons */
+        .dna-icon { height: 6px; border-radius: 3px; position: relative; }
+        .icon-long { background: linear-gradient(90deg, var(--blue) 30%, var(--green) 70%); }
+        .icon-target { background: linear-gradient(90deg, var(--purple) 20%, var(--green) 60%, var(--purple) 20%); }
+
+        /* --- Animation Stage Elements --- */
+        .dna-workspace { position: relative; width: 85%; height: 200px; }
+        .strand { position: absolute; width: 100%; height: 10px; border-radius: 5px; transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .template-original { background: var(--blue); }
+        .new-synthesis { background: var(--green); height: 10px; width: 0; position: absolute; }
+        .primer { position: absolute; width: 40px; height: 14px; background: var(--purple); border-radius: 3px; opacity: 0; z-index: 5; }
+        .label { position: absolute; font-size: 0.7rem; font-weight: bold; color: #aaa; }
 
         /* --- Controls --- */
-        #controls { 
-            padding: 20px; border-top: 1px solid var(--gray); 
-            display: flex; justify-content: center; align-items: center; gap: 20px;
-        }
-        button {
-            padding: 12px 24px; font-size: 1rem; font-weight: bold; border: none;
-            border-radius: 50px; background: var(--dark); color: white; cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s;
-        }
-        button:active { transform: scale(0.95); }
+        #controls { padding: 20px; border-top: 1px solid #eee; background: white; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        #slider-container { width: 80%; display: flex; align-items: center; gap: 15px; }
+        input[type=range] { flex: 1; cursor: pointer; accent-color: var(--purple); }
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 10px 25px; border-radius: 20px; border: none; background: var(--text); color: white; font-weight: bold; cursor: pointer; }
         button:disabled { background: #ccc; }
 
-        #status-box { text-align: center; min-width: 120px; }
-        #cycle-num { font-size: 1.5rem; font-weight: bold; display: block; }
+        /* Phase Indicators */
+        #phase-display { font-weight: bold; color: var(--purple); font-size: 0.9rem; height: 1.2rem; }
     </style>
 </head>
 <body>
 
-    <div id="header">
-        <div style="font-weight: 800; letter-spacing: 1px;">WYNSCAPE <span style="font-weight: 300; color: #999;">LABS</span></div>
-        <div id="phase-text" style="color: var(--purple); font-weight: bold; font-size: 0.9rem;">Ready to start</div>
-    </div>
+    <div id="header"><h1>POLYMERASE CHAIN REACTION</h1></div>
 
-    <div id="main-container">
+    <div id="main">
         <div id="stage">
-            <!-- DNA Visuals -->
-            <div class="strand-container" id="dna-box">
-                <div id="top-strand" class="strand template" style="top: 30%;"></div>
-                <div id="bottom-strand" class="strand template" style="bottom: 30%;"></div>
+            <div id="phase-display">Set slider to start</div>
+            <div class="dna-workspace">
+                <!-- 5' to 3' template (Top) -->
+                <div id="top-t" class="strand template-original" style="top: 30%;"></div>
+                <div class="label" style="top: 25%; left: -30px;">5'</div>
+                <div class="label" style="top: 25%; right: -30px;">3'</div>
                 
-                <div id="p1" class="primer" style="top: 35%; left: 0;"></div>
-                <div id="p2" class="primer" style="bottom: 35%; right: 0;"></div>
+                <!-- 3' to 5' template (Bottom) -->
+                <div id="bot-t" class="strand template-original" style="bottom: 30%;"></div>
+                <div class="label" style="bottom: 25%; left: -30px;">3'</div>
+                <div class="label" style="bottom: 25%; right: -30px;">5'</div>
+
+                <!-- Primers & Synthesis -->
+                <div id="p-top" class="primer" style="top: 38%; right: 0;"></div> <!-- Binds to 3' of top -->
+                <div id="p-bot" class="primer" style="bottom: 38%; left: 0;"></div> <!-- Binds to 3' of bot -->
                 
-                <div id="ext-top" class="strand new-dna" style="top: 30%; right: 0; width: 0;"></div>
-                <div id="ext-bottom" class="strand new-dna" style="bottom: 30%; left: 0; width: 0;"></div>
-                
-                <div id="pol" class="polymerase"></div>
+                <div id="syn-top" class="new-synthesis" style="top: 30%; right: 40px;"></div>
+                <div id="syn-bot" class="new-synthesis" style="bottom: 30%; left: 40px;"></div>
             </div>
         </div>
 
-        <div id="yield-margin">
-            <div class="yield-group">
-                <div class="yield-label">Linear Increase (Long)</div>
-                <div id="linear-symbols" class="symbol-container"></div>
+        <div id="gallery">
+            <div class="gallery-section">
+                <div class="gallery-title">Cycle: <span id="cycle-count">0</span></div>
             </div>
-            <div class="yield-group">
-                <div class="yield-label">Exponential (Target)</div>
-                <div id="expo-symbols" class="symbol-container"></div>
+            <div class="gallery-section">
+                <div class="gallery-title">Long Fragments (Linear)</div>
+                <div id="long-fragments" class="product-grid"></div>
+            </div>
+            <div class="gallery-section">
+                <div class="gallery-title">Target Fragments (Exponential)</div>
+                <div id="target-fragments" class="product-grid"></div>
             </div>
         </div>
     </div>
 
     <div id="controls">
-        <div id="status-box">
-            <span style="font-size: 0.7rem; color: #999;">CYCLE</span>
-            <span id="cycle-num">0</span>
+        <div id="slider-container">
+            <span>Denature</span>
+            <input type="range" id="phase-slider" min="0" max="100" value="0">
+            <span>Extend</span>
         </div>
-        <button id="run-btn" onclick="runCycle()">RUN NEXT CYCLE</button>
-        <button style="background: #eee; color: #666;" onclick="location.reload()">RESET</button>
+        <div class="btn-group">
+            <button id="next-btn" onclick="completeCycle()" disabled>FINISH CYCLE</button>
+            <button style="background:#eee; color:#666" onclick="location.reload()">RESET</button>
+        </div>
     </div>
 
     <script>
-        /* --- SECURITY FEATURES --- */
-        // Domain Lock
+        /* --- SECURITY --- */
         if (!window.location.hostname.includes('wynscape.github.io') && !window.location.hostname.includes('localhost')) {
-            document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h1>Unauthorized Access</h1><p>This interactive is property of Wynscape. Mirroring is prohibited.</p></div>";
+            document.body.innerHTML = "";
         }
-        // Disable Right Click & Dev Tools
-        document.addEventListener('contextmenu', event => event.preventDefault());
-        document.onkeydown = function(e) {
-            if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
-        };
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73) || (e.ctrlKey && e.keyCode == 85)) return false; };
 
-        /* --- PCR LOGIC --- */
+        /* --- LOGIC --- */
+        const slider = document.getElementById('phase-slider');
+        const phaseTxt = document.getElementById('phase-display');
+        const nextBtn = document.getElementById('next-btn');
         let cycle = 0;
-        let isAnimating = false;
 
-        async function runCycle() {
-            if(isAnimating) return;
-            isAnimating = true;
-            cycle++;
-            document.getElementById('run-btn').disabled = true;
-
-            // 1. Denaturation
-            updateStatus("1. Denaturation (95°C)", "#e74c3c");
-            document.getElementById('top-strand').style.top = "15%";
-            document.getElementById('bottom-strand').style.bottom = "15%";
-            await wait(1000);
-
-            // 2. Annealing
-            updateStatus("2. Annealing (55°C)", "var(--purple)");
-            document.getElementById('p1').style.opacity = "1";
-            document.getElementById('p2').style.opacity = "1";
-            await wait(800);
-
-            // 3. Extension
-            updateStatus("3. Extension (72°C)", "var(--green)");
-            const pol = document.getElementById('pol');
-            const extTop = document.getElementById('ext-top');
-            const extBot = document.getElementById('ext-bottom');
+        slider.addEventListener('input', (e) => {
+            const val = e.target.value;
             
-            pol.style.opacity = "1";
-            extTop.style.height = "8px";
-            extBot.style.height = "8px";
-            
-            // Animate Extension
-            for(let i=0; i<=100; i+=2) {
-                extTop.style.width = i + "%";
-                extBot.style.width = i + "%";
-                pol.style.left = i + "%";
-                pol.style.top = (Math.random() > 0.5 ? "15%" : "85%");
-                await wait(20);
+            // 1. Denaturation (0-30)
+            if (val < 33) {
+                phaseTxt.innerText = "1. Denaturation (95°C) - Strands Separate";
+                document.getElementById('top-t').style.top = (30 - (val/2)) + "%";
+                document.getElementById('bot-t').style.bottom = (30 - (val/2)) + "%";
+                resetSynthesis();
+            } 
+            // 2. Annealing (33-66)
+            else if (val >= 33 && val < 66) {
+                phaseTxt.innerText = "2. Annealing (55°C) - Primers Bind to 3' Ends";
+                document.getElementById('p-top').style.opacity = "1";
+                document.getElementById('p-bot').style.opacity = "1";
+                document.getElementById('syn-top').style.width = "0%";
+                document.getElementById('syn-bot').style.width = "0%";
             }
+            // 3. Extension (66-100)
+            else {
+                phaseTxt.innerText = "3. Extension (72°C) - Synthesis Starts";
+                const extWidth = ((val - 66) / 34) * 85;
+                document.getElementById('syn-top').style.width = extWidth + "%";
+                document.getElementById('syn-bot').style.width = extWidth + "%";
+                if(val == 100) nextBtn.disabled = false;
+            }
+        });
 
-            // End Cycle
-            pol.style.opacity = "0";
-            document.getElementById('cycle-num').innerText = cycle;
-            updateYield();
+        function completeCycle() {
+            if (cycle >= 5) return;
+            cycle++;
+            document.getElementById('cycle-count').innerText = cycle;
             
-            await wait(500);
+            // Math Logic: Linear vs Exponential
+            const longCount = cycle * 2;
+            const total = Math.pow(2, cycle);
+            const targetCount = cycle < 3 ? 0 : total - longCount;
+
+            // Update Gallery
+            updateGallery(longCount, targetCount);
+
+            // Reset for next cycle
+            slider.value = 0;
+            nextBtn.disabled = true;
             resetVisuals();
-            updateStatus("Cycle " + cycle + " Complete", varName('--dark'));
-            document.getElementById('run-btn').disabled = false;
-            isAnimating = false;
+            phaseTxt.innerText = "Cycle " + cycle + " Complete. Start next cycle?";
         }
 
-        function updateYield() {
-            const linearCount = cycle * 2;
-            const total = Math.pow(2, cycle);
-            const expoCount = cycle < 3 ? 0 : total - linearCount;
+        function updateGallery(l, t) {
+            const lGrid = document.getElementById('long-fragments');
+            const tGrid = document.getElementById('target-fragments');
+            
+            lGrid.innerHTML = '';
+            for(let i=0; i<l; i++) lGrid.innerHTML += '<div class="dna-icon icon-long"></div>';
+            
+            tGrid.innerHTML = '';
+            for(let i=0; i<t; i++) tGrid.innerHTML += '<div class="dna-icon icon-target"></div>';
+        }
 
-            const linContainer = document.getElementById('linear-symbols');
-            const expContainer = document.getElementById('expo-symbols');
-
-            // Render Linear
-            linContainer.innerHTML = '';
-            for(let i=0; i < Math.min(linearCount, 12); i++) {
-                linContainer.innerHTML += '<div class="symbol sym-linear"></div>';
-            }
-            if(linearCount > 12) linContainer.innerHTML += `<span class="multiplier">x${linearCount}</span>`;
-
-            // Render Exponential
-            expContainer.innerHTML = '';
-            for(let i=0; i < Math.min(expoCount, 12); i++) {
-                expContainer.innerHTML += '<div class="symbol sym-expo"></div>';
-            }
-            if(expoCount > 12) expContainer.innerHTML += `<span class="multiplier">x${expoCount}</span>`;
-            if(cycle >= 3) expContainer.style.background = "#fff9c4"; // Highlight when expo starts
+        function resetSynthesis() {
+            document.getElementById('p-top').style.opacity = "0";
+            document.getElementById('p-bot').style.opacity = "0";
+            document.getElementById('syn-top').style.width = "0";
+            document.getElementById('syn-bot').style.width = "0";
         }
 
         function resetVisuals() {
-            document.getElementById('top-strand').style.top = "30%";
-            document.getElementById('bottom-strand').style.bottom = "30%";
-            document.getElementById('p1').style.opacity = "0";
-            document.getElementById('p2').style.opacity = "0";
-            document.getElementById('ext-top').style.width = "0";
-            document.getElementById('ext-bottom').style.width = "0";
+            document.getElementById('top-t').style.top = "30%";
+            document.getElementById('bot-t').style.bottom = "30%";
+            resetSynthesis();
         }
-
-        function updateStatus(txt, col) {
-            const el = document.getElementById('phase-text');
-            el.innerText = txt;
-            el.style.color = col;
-        }
-
-        function wait(ms) { return new Promise(res => setTimeout(res, ms)); }
-        function varName(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
     </script>
 </body>
 </html>
